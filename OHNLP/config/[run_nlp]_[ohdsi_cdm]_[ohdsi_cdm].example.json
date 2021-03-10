@@ -1,0 +1,56 @@
+{
+  "id": "nlp_ohdsi_to_ohdsi",
+  "description": "A pipeline configuration that extracts clinical narratives from OHDSI CDM, runs a MedTagger NLP rulesets, and outputs back to OHDSI CDM.",
+  "pipeline": [
+    {
+      "clazz": "org.ohnlp.backbone.io.jdbc.JDBCExtract",
+      "config": {
+        "_desc": "An example configuration to extract notes from mssql OHDSI CDM instance, replace values as appropriate",
+        "url": "jdbc:postgresql://localhost:5432/ohdsi",
+        "driver": "org.postgresql.Driver",
+        "user": "",
+        "password": "",
+        "query": "SELECT note_id, note_text FROM NOTE"
+      }
+    },
+    {
+      "clazz": "org.ohnlp.medtagger.backbone.MedTaggerBackboneTransform",
+      "config": {
+        "_desc": "Runs NLP. In this case, we use COVID-19 ruleset that is bundled by default as an example",
+        "_desc_ctd": "Note: you will need to install the MedTagger Backbone Component found at https://www.github.com/OHNLP/MedTagger",
+        "input": "note_text",
+        "ruleset": "covid19",
+        "mode": "standalone"
+      }
+    },
+    {
+      "clazz": "org.ohnlp.medtagger.backbone.MedTaggerOutputToOHDSIFormatTransform",
+      "config": {
+        "_desc": "Converts MedTagger output to OHDSI format",
+        "_desc_ctd": "Note: you will need to install the MedTagger Backbone Component found at https://www.github.com/OHNLP/MedTagger",
+        "ruleset": "covid19"
+      }
+    },
+    {
+      "clazz": "org.ohnlp.backbone.io.jdbc.JDBCLoad",
+      "config": {
+        "_desc": "An example configuration to load NLP artifacts into OHDSI CDM, replace values as appropriate",
+        "url": "jdbc:postgresql://localhost:5432/ohdsi",
+        "driver": "org.postgresql.Driver",
+        "user": "",
+        "password": "",
+        "query": "insert into NOTE_NLP (note_id, section_concept_id, lexical_variant, snippet, note_nlp_concept_id, note_nlp_source_concept_id, nlp_date, term_modifiers) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+        "paramMappings": [
+          "note_id",
+          "section_concept_id",
+          "lexical_variant",
+          "snippet",
+          "note_nlp_concept_id",
+          "note_nlp_source_concept_id",
+          "nlp_datetime",
+          "term_modifiers"
+        ]
+      }
+    }
+  ]
+}
