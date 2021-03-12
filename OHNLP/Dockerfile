@@ -26,8 +26,7 @@ RUN cd OHNLP/medtagger/; unzip MedTagger.zip
 RUN cd OHNLP/medtagger/; cp  MedTagger.jar ../backbone/modules/
 RUN cd OHNLP/medtagger/; cp -r medtaggerieresources/covid19/ ../backbone/resources/
 
-COPY config/[\[run_nlp\]_\[ohdsi_cdm\]_\[ohdsi_cdm\].json OHNLP/backbone/configs/
+ARG source="./config/[[]run_nlp]_[[]ohdsi_cdm]_[[]ohdsi_cdm].json"
+COPY ${source} OHNLP/backbone/configs/
 COPY run_pipeline_local.sh OHNLP/backbone/
 RUN cd OHNLP/backbone; bash package_modules_and_configs.sh
-
-
