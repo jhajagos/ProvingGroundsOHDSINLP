@@ -21,7 +21,7 @@ RUN cd OHNLP/backbone;  wget https://github.com/OHNLP/Backbone/releases/download
 RUN cd OHNLP/backbone;  unzip Backbone.zip
 
 RUN mkdir  OHNLP/medtagger
-RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.9/MedTagger.zip
+RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.10/MedTagger.zip
 RUN cd OHNLP/medtagger/; unzip MedTagger.zip
 RUN cd OHNLP/medtagger/; cp  MedTagger.jar ../backbone/modules/
 RUN cd OHNLP/medtagger/; cp -r medtaggerieresources/covid19/ ../backbone/resources/
