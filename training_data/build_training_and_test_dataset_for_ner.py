@@ -16,8 +16,13 @@ We align the lexical variant using SPACY nlp
 
 """
 
+if spacy.__version__.split(".")[0] != "3":
+    raise (RuntimeError, "Requires version 3 of spacy library")
+
 
 def main(connection_uri, schema_name, output_path, max_size, train_split):
+
+    exclude_concepts = [4266367]
 
     engine = sa.create_engine(connection_uri)
     with engine.connect() as connection:
@@ -25,16 +30,17 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         meta_data.reflect()
 
         note_nlp_obj = meta_data.tables[schema_name + "." + "note_nlp"]
-        query_obj = note_nlp_obj.select().where(note_nlp_obj.c.note_nlp_concept_id != 4266367).order_by(note_nlp_obj.c.note_id)  # Exclude FLU as there are many false positives
+        query_obj = note_nlp_obj.select().where(sa.not_(note_nlp_obj.c.note_nlp_concept_id.in_(exclude_concepts))).order_by(note_nlp_obj.c.note_id)  # Exclude FLU as there are many false positives
 
         cursor = connection.execute(query_obj)
         snippet_dict = {}
 
-        re_date = re.compile("[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2} EST")
+        re_date = re.compile("[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2} EST") # for finding dates that start a note
 
         i = 0
         for row in cursor:
 
+            # Some cleaning
             snippet = row["snippet"].strip()
             re_snippet_obj = re_date.search(snippet)
 
@@ -66,7 +72,7 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
                 else:
                     snippet_dict[snippet] = [match_dict]
 
-            if i == max_size:
+            if max_size is not None and i == max_size:
                break
 
             i += 1
@@ -100,20 +106,55 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         training_size = number_of_documents - test_size
 
         p_output_path = pathlib.Path(output_path)
-        training_corpora_path = p_output_path / "sbm_ohdsi_train_covid_annotated.spacy"
+        training_corpora_path = p_output_path / "ohnlp_ohdsi_train_annotated.spacy"
 
         train_doc_bin_obj = DocBin(docs=doc_list[0:training_size])
         train_doc_bin_obj.to_disk(training_corpora_path)
 
         test_doc_bin_obj = DocBin(docs=doc_list[training_size:])
-        testing_corpora_path = p_output_path / "sbm_ohdsi_test_covid_annotated.spacy"
+        testing_corpora_path = p_output_path / "ohnlp_ohdsi_test_annotated.spacy"
         test_doc_bin_obj.to_disk(testing_corpora_path)
 
 
-
-
 if __name__ == "__main__":
-    with open("./config.json") as f:
+
+    import argparse
+    arg_parse_obj = argparse.ArgumentParser(description="Build a training set and a test set for named entity recognition for OHNLP pipeline to OHDSI")
+
+    arg_parse_obj.add_argument("-c", "--config-json-file-name", dest="config_json_file_name", default="./config.json",
+                               help="JSON dictionary with following keys: \"connection_uri\", \"schema\", \"data_directory\""
+                               )
+    arg_parse_obj.add_argument("-t", "--test-size-split", dest="test_size_split", default="0.3",
+                               help="Fractional split of training size must be between 0 and 1")
+    arg_parse_obj.add_argument("-m", "--maximum-number-of-documents", dest="maximum_number_of_documents",
+                               help="Maximum number of documents; default is no restriction", default=None)
+
+    arg_obj = arg_parse_obj.parse_args()
+
+    test_size = arg_obj.test_size_split
+    try:
+        float_test_size = float(test_size)
+    except ValueError:
+        raise (RuntimeError, "Invalid number")
+
+    if float_test_size >= 0.0 and float_test_size <= 1.0:
+        pass
+    else:
+        raise (RuntimeError, "Fractional test size should between 0 and 1")
+
+    maximum_size = arg_obj.maximum_number_of_documents
+    if maximum_size is not None:
+        try:
+            int_maximum_size = int(maximum_size)
+        except ValueError:
+            raise (RuntimeError, "Not an integer")
+    else:
+        int_maximum_size = None
+
+
+
+    with open(arg_obj.config_json_file_name) as f:
         config = json.load(f)
 
-    main(config["connection_uri"], config["schema"], config["data_directory"], 20000, 0.3)
+    main(config["connection_uri"], config["schema"], config["data_directory"], int_maximum_size, float_test_size)
+
