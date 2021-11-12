@@ -151,10 +151,7 @@ if __name__ == "__main__":
     else:
         int_maximum_size = None
 
-
-
     with open(arg_obj.config_json_file_name) as f:
         config = json.load(f)
 
     main(config["connection_uri"], config["schema"], config["data_directory"], int_maximum_size, float_test_size)
-
