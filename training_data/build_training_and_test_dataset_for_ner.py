@@ -75,6 +75,9 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
             if max_size is not None and i == max_size:
                break
 
+            if i > 0 and i % 100 == 0:
+                print(f"Number of documents processed: {i}")
+
             i += 1
 
         # Build annotations
