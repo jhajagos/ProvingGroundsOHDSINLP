@@ -6,6 +6,8 @@ from spacy.tokens import DocBin
 import pathlib
 import random
 import math
+import hashlib
+import pandas as pd
 
 """
 Builds two data set for training and evaluation for NER training in SPACY
@@ -30,7 +32,8 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         meta_data.reflect()
 
         note_nlp_obj = meta_data.tables[schema_name + "." + "note_nlp"]
-        query_obj = note_nlp_obj.select().where(sa.not_(note_nlp_obj.c.note_nlp_concept_id.in_(exclude_concepts))).order_by(note_nlp_obj.c.note_id)  # Exclude FLU as there are many false positives
+        query_obj = note_nlp_obj.select().where(sa.not_(note_nlp_obj.c.note_nlp_concept_id.\
+                                                        in_(exclude_concepts))).order_by(note_nlp_obj.c.note_id)  # Exclude FLU as there are many false positives
 
         cursor = connection.execute(query_obj)
         snippet_dict = {}
@@ -55,16 +58,20 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
             term_modifiers = row["term_modifiers"]
             modifier_list = term_modifiers.split(",")
 
+            sha1 = hashlib.sha1(snippet.encode("utf8", errors="replace")).hexdigest()
+
             if lexical_variant in snippet:
                 start_offset = snippet.index(lexical_variant)
                 end_offset = start_offset + len(lexical_variant)
 
                 match_dict = {
-                             "lexical_variant": lexical_variant, "note_id": note_id,
-                              "note_nlp_id": note_nlp_id,
-                              "term_modifiers": modifier_list,
-                              "note_nlp_concept_id": note_nlp_concept_id,
-                              "offsets": (start_offset, end_offset)
+                             "sha1": sha1,
+                             "lexical_variant": lexical_variant,
+                             "note_id": note_id,
+                             "note_nlp_id": note_nlp_id,
+                             "term_modifiers": modifier_list,
+                             "note_nlp_concept_id": note_nlp_concept_id,
+                             "offsets": (start_offset, end_offset)
                              }
 
                 if snippet in snippet_dict:
@@ -81,25 +88,37 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
             i += 1
 
         # Build annotations
+        print(f"Build annotations for {len(snippet_dict)} distinct text fragments")
+
         nlp = spacy.load("en_core_web_sm")
         doc_list = []
+        meta_data_list = []
         for snippet in snippet_dict:
+
+            sha1 = hashlib.sha1(snippet.encode("utf8", errors="replace")).hexdigest()
             doc = nlp(snippet)
+            doc.user_data["sha1"] = sha1
+
             variants_found = []
             spans = []
             for variant_dict in snippet_dict[snippet]:
                 variant = variant_dict["lexical_variant"]
+                meta_data_list += [variant_dict]
                 start_position, end_position = variant_dict["offsets"]
                 term_modifiers = variant_dict["term_modifiers"]
 
                 annotation_label = term_modifiers[0].split("=")[1]
-
                 if variant not in variants_found and annotation_label is not None:
                     variants_found += [variant]
                     spans += [doc.char_span(start_position, end_position, label=annotation_label, alignment_mode="expand")]
 
             doc.set_ents(spans)
             doc_list += [doc]
+
+        p_output_path = pathlib.Path(output_path)
+
+        meta_data_df = pd.DataFrame(meta_data_list)
+        meta_data_df.to_csv(p_output_path / "meta_data.csv", index=False)
 
         # Shuffle list to randomize
         random.shuffle(doc_list)
@@ -108,7 +127,6 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         test_size = int(math.floor(number_of_documents * train_split))
         training_size = number_of_documents - test_size
 
-        p_output_path = pathlib.Path(output_path)
         training_corpora_path = p_output_path / "ohnlp_ohdsi_train_annotated.spacy"
 
         train_doc_bin_obj = DocBin(docs=doc_list[0:training_size])
@@ -130,7 +148,7 @@ if __name__ == "__main__":
     arg_parse_obj.add_argument("-t", "--test-size-split", dest="test_size_split", default="0.3",
                                help="Fractional split of training size must be between 0 and 1")
     arg_parse_obj.add_argument("-m", "--maximum-number-of-documents", dest="maximum_number_of_documents",
-                               help="Maximum number of documents; default is no restriction", default=None)
+                               help="Maximum number of documents; default is no restriction", default=10000)
 
     arg_obj = arg_parse_obj.parse_args()
 
