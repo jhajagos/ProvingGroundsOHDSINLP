@@ -11,8 +11,8 @@ RUN apt-get -y install dos2unix
 # Get lastest Java
 RUN add-apt-repository ppa:linuxuprising/java
 RUN apt-get -y update
-RUN echo "oracle-java15-installer shared/accepted-oracle-license-v1-2 select true" | debconf-set-selections
-RUN apt-get -y install oracle-java15-installer
+RUN echo "oracle-java17-installer shared/accepted-oracle-license-v1-3 select true" | debconf-set-selections
+RUN apt-get -y install oracle-java17-installer
 RUN apt-get -y install unzip
 
 # Get latest backbone software
