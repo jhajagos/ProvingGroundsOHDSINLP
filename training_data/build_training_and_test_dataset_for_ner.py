@@ -24,7 +24,7 @@ if spacy.__version__.split(".")[0] != "3":
 
 def main(connection_uri, schema_name, output_path, max_size, train_split):
 
-    exclude_concepts = [4266367]
+    exclude_concepts = [4266367] # Exclude influenza
 
     engine = sa.create_engine(connection_uri)
     with engine.connect() as connection:
@@ -132,7 +132,7 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         train_doc_bin_obj = DocBin(docs=doc_list[0:training_size])
         train_doc_bin_obj.to_disk(training_corpora_path)
 
-        test_doc_bin_obj = DocBin(docs=doc_list[training_size:])
+        test_doc_bin_obj = DocBin(docs=doc_list[training_size:], store_user_data=True)
         testing_corpora_path = p_output_path / "ohnlp_ohdsi_test_annotated.spacy"
         test_doc_bin_obj.to_disk(testing_corpora_path)
 
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     arg_parse_obj.add_argument("-t", "--test-size-split", dest="test_size_split", default="0.3",
                                help="Fractional split of training size must be between 0 and 1")
     arg_parse_obj.add_argument("-m", "--maximum-number-of-documents", dest="maximum_number_of_documents",
-                               help="Maximum number of documents; default is no restriction", default=10000)
+                               help="Maximum number of documents; default is no restriction", default=20000)
 
     arg_obj = arg_parse_obj.parse_args()
 

@@ -17,11 +17,11 @@ RUN apt-get -y install unzip
 
 # Get latest backbone software
 RUN mkdir -p OHNLP/backbone
-RUN cd OHNLP/backbone;  wget https://github.com/OHNLP/Backbone/releases/download/v1.0.2/Backbone.zip
+RUN cd OHNLP/backbone;  wget https://github.com/OHNLP/Backbone/releases/download/v1.0.3/Backbone.zip
 RUN cd OHNLP/backbone;  unzip Backbone.zip
 
 RUN mkdir  OHNLP/medtagger
-RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.10/MedTagger.zip
+RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.13/MedTagger.zip
 RUN cd OHNLP/medtagger/; unzip MedTagger.zip
 RUN cd OHNLP/medtagger/; cp  MedTagger.jar ../backbone/modules/
 RUN cd OHNLP/medtagger/; cp -r medtaggerieresources/covid19/ ../backbone/resources/
