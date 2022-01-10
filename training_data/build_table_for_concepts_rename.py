@@ -49,7 +49,7 @@ def main(config):
 
         # print(len(df))
 
-        df = df[df["note_class_concept_name"].isin(["Emergency medicine", "Discharge summary"])]
+        df = df[df["note_class_concept_name"].isin(["Emergency medicine", "Admission evaluation", "Discharge summary"])]
 
         # print(len(df))
 
@@ -81,8 +81,6 @@ def main(config):
         group_with_no_match_df = group_with_no_match_df.sort_values(["encounter_number", "note_class_concept_name", "note_nlp_concept_name"])
 
         group_with_no_match_df.to_csv("./output.csv", index=False)
-
-        #print(grouped_df)
 
 
 

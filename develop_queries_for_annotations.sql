@@ -9,10 +9,11 @@ select count(*) as n_r, count(distinct visit_occurrence_id) as n_visits,
 
 
 select count(*) as n_r, count(distinct visit_occurrence_id) as n_visits, count(distinct person_id) as n,
-       c.concept_name as note_class_concept_name
+       c.concept_name as note_class_concept_name,
+       n.note_class_concept_id
     from sbm_covid19_documents.note n join sbm_covid19_hi_cdm_build.concept c
             on c.concept_id = n.note_class_concept_id
-    group by c.concept_name order by c.concept_name
+    group by c.concept_name, n.note_class_concept_id order by c.concept_name
 ;
 
 /*
@@ -36,7 +37,8 @@ select count(*) as n_r, count(distinct n.note_id) as n_notes,
 ;
 
 /*
- 40371,7015,6589,4660,Discharge summary
+85345,10202,7686,5269,Admission evaluation
+40371,7015,6589,4660,Discharge summary
 211826,25135,16623,10146,Emergency medicine
  */
 
@@ -110,3 +112,22 @@ limit 10;
 
 
 
+
+
+select * from sbm_covid19_analytics_build.critical_covid_manual_chart_review mcr
+join
+(
+    select distinct cast(visit_occurrence_id as varchar(36)) as encounter_number
+        from sbm_covid19_documents.note n join sbm_covid19_hi_cdm_build.concept c
+                on c.concept_id = n.note_class_concept_id
+        where c.concept_name in ('Emergency medicine', 'Admission evaluation', 'Discharge summary')
+) t on t.encounter_number = mcr.encounter_number
+join
+(
+select v.visit_occurrence_id from sbm_covid19_analytics_build.critical_covid_visits_linked_to_hi v
+        join sbm_covid19_analytics_build.checked_visit_index cv on cv.visit_occurrence_id = v.visit_occurrence_id
+            where encounter_number is not null and v.covid19_status = 'positive'
+) tt on tt.visit_occurrence_id = mcr.visit_occurrence_id
+where visit_start_datetime < load_time
+order by visit_start_datetime desc
+;
