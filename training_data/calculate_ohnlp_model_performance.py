@@ -121,4 +121,5 @@ if __name__ == "__main__":
                             ("dyspnea_admission_v", "note_nlp_concept_name=Dyspnea"),
                             ("cough_v", "note_nlp_concept_name=Dry cough")]
 
+
     main(config)
