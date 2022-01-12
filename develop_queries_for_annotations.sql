@@ -76,7 +76,7 @@ select v.visit_occurrence_id, v.encounter_number, v.covid19_status, cv.*
 limit 10;
 
 --For Covid positive patients selects the visit and annotations
- with selected_positive_visits as (
+        with selected_positive_visits as (
     select cast(v.encounter_number as bigint) as encounter_number,
            v.visit_start_datetime,
            v.visit_end_datetime,
@@ -90,15 +90,17 @@ limit 10;
                                    n.person_id                                          as mrn,
                                    c1.concept_name                                      as note_class_concept_name,
                                    note_class_concept_id,
+                                   note_nlp_id,
                                    note_nlp_concept_id,
-                                   note_nlp_concept_name,
-                                   case when x.note_id is not null then 1 else null end as counter
+                                   case when note_nlp_concept_name is null then 'NC' else note_nlp_concept_name end as note_nlp_concept_name,
+                                   case when x.note_id is not null then 1 end as counter
                    from selected_positive_visits sv
                             join sbm_covid19_documents.note n on n.visit_occurrence_id = sv.encounter_number
                             join sbm_covid19_hi_cdm_build.concept c1
                                  on c1.concept_id = n.note_class_concept_id
                             left outer join
                             (select nl.note_id,
+                                    nl.note_nlp_id,
                                     c2.concept_id   as note_nlp_concept_id,
                                     c2.concept_name as note_nlp_concept_name
                              from sbm_covid19_documents.note_nlp nl
@@ -107,14 +109,13 @@ limit 10;
                                and c2.concept_name != 'Influenza') x
                         on x.note_id = n.note_id
                ) t
-            order by encounter_number, note_class_concept_name, note_nlp_concept_id
-;
+            order by encounter_number, note_class_concept_name, note_nlp_concept_id;
 
 
 
 
-
-select * from sbm_covid19_analytics_build.critical_covid_manual_chart_review mcr
+select mcr.*
+       from sbm_covid19_analytics_build.critical_covid_manual_chart_review mcr
 join
 (
     select distinct cast(visit_occurrence_id as varchar(36)) as encounter_number
@@ -131,3 +132,10 @@ select v.visit_occurrence_id from sbm_covid19_analytics_build.critical_covid_vis
 where visit_start_datetime < load_time
 order by visit_start_datetime desc
 ;
+
+select * from sbm_covid19_documents.note n join sbm_covid19_documents.note_nlp nl on n.note_id = nl.note_id
+    join sbm_covid19_hi_cdm_build.concept c1 on n.note_class_concept_id = c1.concept_id
+    join sbm_covid19_hi_cdm_build.concept c2 on nl.note_nlp_concept_id = c2.concept_id
+    where n.visit_occurrence_id = 10152427547 and c2.concept_name = 'Abdominal pain';
+
+

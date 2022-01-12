@@ -22,7 +22,7 @@ if spacy.__version__.split(".")[0] != "3":
     raise (RuntimeError, "Requires version 3 of spacy library")
 
 
-def main(connection_uri, schema_name, output_path, max_size, train_split):
+def main(connection_uri, schema_name, output_path, max_size, train_split, annotation_style):
 
     exclude_concepts = [4266367] # Exclude influenza
 
@@ -32,10 +32,13 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         meta_data.reflect()
 
         note_nlp_obj = meta_data.tables[schema_name + "." + "note_nlp"]
-        query_obj = note_nlp_obj.select().where(sa.not_(note_nlp_obj.c.note_nlp_concept_id.\
+        query_obj_1 = note_nlp_obj.select().where(sa.not_(note_nlp_obj.c.note_nlp_concept_id.\
                                                         in_(exclude_concepts))).order_by(note_nlp_obj.c.note_id)  # Exclude FLU as there are many false positives
 
-        cursor = connection.execute(query_obj)
+
+        print("Executing query")
+        cursor = connection.execute(query_obj_1)
+
         snippet_dict = {}
 
         re_date = re.compile("[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2} EST") # for finding dates that start a note
@@ -71,7 +74,7 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
                              "note_nlp_id": note_nlp_id,
                              "term_modifiers": modifier_list,
                              "note_nlp_concept_id": note_nlp_concept_id,
-                             "offsets": (start_offset, end_offset)
+                             "offsets": (start_offset, end_offset),
                              }
 
                 if snippet in snippet_dict:
@@ -82,8 +85,8 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
             if max_size is not None and i == max_size:
                break
 
-            if i > 0 and i % 100 == 0:
-                print(f"Number of documents processed: {i}")
+            if i > 0 and i % 1000 == 0:
+                print(f"Number of fragments processed: {i}")
 
             i += 1
 
@@ -93,6 +96,7 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         nlp = spacy.load("en_core_web_sm")
         doc_list = []
         meta_data_list = []
+        i = 0
         for snippet in snippet_dict:
 
             sha1 = hashlib.sha1(snippet.encode("utf8", errors="replace")).hexdigest()
@@ -106,19 +110,39 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
                 meta_data_list += [variant_dict]
                 start_position, end_position = variant_dict["offsets"]
                 term_modifiers = variant_dict["term_modifiers"]
+                concept_id = variant_dict["note_nlp_concept_id"]
 
                 annotation_label = term_modifiers[0].split("=")[1]
                 if variant not in variants_found and annotation_label is not None:
                     variants_found += [variant]
-                    spans += [doc.char_span(start_position, end_position, label=annotation_label, alignment_mode="expand")]
+                    if annotation_style == "label_term_usage":
+                        spans += [doc.char_span(start_position, end_position, label=annotation_label, alignment_mode="expand")]
+                    elif annotation_style == "label_positive_concepts":
+                        if annotation_label == "Positive":
+                            spans += [doc.char_span(start_position, end_position, label=str(concept_id),
+                                                    alignment_mode="expand")]
 
-            doc.set_ents(spans)
-            doc_list += [doc]
+            try:
+                doc.set_ents(spans)
+                doc_list += [doc]
+            except ValueError:
+                print("Unable to set annotations")
+                print(snippet)
+
+            if i > 0 and i % 1000 == 0:
+                print(f"Processed {i} snippets")
+
+            i += 1
 
         p_output_path = pathlib.Path(output_path)
 
         meta_data_df = pd.DataFrame(meta_data_list)
         meta_data_df.to_csv(p_output_path / "meta_data.csv", index=False)
+
+        full_set_path = p_output_path / f"ohnlp_full_set_{annotation_style}.spacy"
+        print(f"Writing: '{full_set_path}'")
+        full_set_obj = DocBin(docs=doc_list, store_user_data=True)
+        full_set_obj.to_disk(full_set_path)
 
         # Shuffle list to randomize
         random.shuffle(doc_list)
@@ -127,13 +151,15 @@ def main(connection_uri, schema_name, output_path, max_size, train_split):
         test_size = int(math.floor(number_of_documents * train_split))
         training_size = number_of_documents - test_size
 
-        training_corpora_path = p_output_path / "ohnlp_ohdsi_train_annotated.spacy"
+        training_corpora_path = p_output_path / f"ohnlp_ohdsi_train_{annotation_style}.spacy"
+        print(f"Writing training set (n={training_size}) to: '{training_corpora_path}'")
 
-        train_doc_bin_obj = DocBin(docs=doc_list[0:training_size])
+        train_doc_bin_obj = DocBin(docs=doc_list[0:training_size], store_user_data=True)
         train_doc_bin_obj.to_disk(training_corpora_path)
 
         test_doc_bin_obj = DocBin(docs=doc_list[training_size:], store_user_data=True)
-        testing_corpora_path = p_output_path / "ohnlp_ohdsi_test_annotated.spacy"
+        testing_corpora_path = p_output_path / f"ohnlp_ohdsi_test_{annotation_style}.spacy"
+        print(f"Writing test set (n={test_size}) to '{testing_corpora_path}'")
         test_doc_bin_obj.to_disk(testing_corpora_path)
 
 
@@ -148,7 +174,9 @@ if __name__ == "__main__":
     arg_parse_obj.add_argument("-t", "--test-size-split", dest="test_size_split", default="0.3",
                                help="Fractional split of training size must be between 0 and 1")
     arg_parse_obj.add_argument("-m", "--maximum-number-of-documents", dest="maximum_number_of_documents",
-                               help="Maximum number of documents; default is no restriction", default=20000)
+                               help="Maximum number of documents; default is no restriction", default=None)
+
+    arg_parse_obj.add_argument("-a", "--annotation_style", dest="annotation_style", default="label_positive_concepts", help="Two choices: label_term_usage or label_positive_concepts")
 
     arg_obj = arg_parse_obj.parse_args()
 
@@ -175,4 +203,4 @@ if __name__ == "__main__":
     with open(arg_obj.config_json_file_name) as f:
         config = json.load(f)
 
-    main(config["connection_uri"], config["schema"], config["data_directory"], int_maximum_size, float_test_size)
+    main(config["connection_uri"], config["schema"], config["data_directory"], int_maximum_size, float_test_size, arg_obj.annotation_style)

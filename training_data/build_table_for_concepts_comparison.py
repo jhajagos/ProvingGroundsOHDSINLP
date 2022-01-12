@@ -17,7 +17,7 @@ def main(config):
     with engine.connect() as connection:
 
         q1 = """
-        with selected_positive_visits as (
+       with selected_positive_visits as (
     select cast(v.encounter_number as bigint) as encounter_number,
            v.visit_start_datetime,
            v.visit_end_datetime,
@@ -31,6 +31,7 @@ def main(config):
                                    n.person_id                                          as mrn,
                                    c1.concept_name                                      as note_class_concept_name,
                                    note_class_concept_id,
+                                   note_nlp_id,
                                    note_nlp_concept_id,
                                    case when note_nlp_concept_name is null then 'NC' else note_nlp_concept_name end as note_nlp_concept_name,
                                    case when x.note_id is not null then 1 end as counter
@@ -40,6 +41,7 @@ def main(config):
                                  on c1.concept_id = n.note_class_concept_id
                             left outer join
                             (select nl.note_id,
+                                    nl.note_nlp_id,
                                     c2.concept_id   as note_nlp_concept_id,
                                     c2.concept_name as note_nlp_concept_name
                              from sbm_covid19_documents.note_nlp nl
@@ -58,8 +60,11 @@ def main(config):
         print(f"Number of rows returned: {len(note_df)}")
 
         note_df = note_df[note_df["note_class_concept_name"].isin(["Emergency medicine", "Admission evaluation"])]
-
         print(f"Number of rows after filtering: {len(note_df)}")
+
+        note_file_name = p_data_directory / "matched_and_filtered_notes_with_matched_concepts.csv"
+        print(f"Writing: '{note_file_name}'")
+        note_df.to_csv(note_file_name, index=False)
 
         core_df = note_df[["encounter_number", "mrn", "visit_start_datetime", "visit_end_datetime", "visit_concept_name"]].drop_duplicates()
         print(f"Number of visits: {len(core_df)}")
@@ -107,7 +112,7 @@ select v.visit_occurrence_id from sbm_covid19_analytics_build.critical_covid_vis
         join sbm_covid19_analytics_build.checked_visit_index cv on cv.visit_occurrence_id = v.visit_occurrence_id
             where encounter_number is not null and v.covid19_status = 'positive'
 ) tt on tt.visit_occurrence_id = mcr.visit_occurrence_id
-where visit_start_datetime < load_time 
+where visit_start_datetime < '2020-05-01' 
 order by visit_start_datetime desc
         """
 
