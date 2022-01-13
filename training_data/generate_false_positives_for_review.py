@@ -51,7 +51,6 @@ def main(config, concept_names):
     def clean_text_for_excel(text):
 
         if '-' == str(text)[0]:
-            print(str(text))
             return "'" + str(text) + "'"
         else:
             return str(text)
