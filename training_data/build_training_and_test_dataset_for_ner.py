@@ -22,19 +22,25 @@ if spacy.__version__.split(".")[0] != "3":
     raise (RuntimeError, "Requires version 3 of spacy library")
 
 
-def main(connection_uri, schema_name, output_path, max_size, train_split, annotation_style):
-
-    exclude_concepts = [4266367] # Exclude influenza
+def main(connection_uri, schema_name, ohdsi_concept_schema, output_path, max_size, train_split, annotation_style):
+    exclude_concepts = [4266367]  # Exclude influenza
 
     engine = sa.create_engine(connection_uri)
     with engine.connect() as connection:
         meta_data = sa.MetaData(connection, schema=schema_name)
         meta_data.reflect()
 
+        print("Get Concept Labels")
+
+        cursor = connection.execute(f"select concept_id, concept_name from {ohdsi_concept_schema}.concept where concept_id in (select distinct note_nlp_concept_id as concept_id from {schema_name}.note_nlp)")
+
+        result = list(cursor)
+
+        concept_dict = {r["concept_id"]: r["concept_name"] for r in result}
+
         note_nlp_obj = meta_data.tables[schema_name + "." + "note_nlp"]
         query_obj_1 = note_nlp_obj.select().where(sa.not_(note_nlp_obj.c.note_nlp_concept_id.\
                                                         in_(exclude_concepts))).order_by(note_nlp_obj.c.note_id)  # Exclude FLU as there are many false positives
-
 
         print("Executing query")
         cursor = connection.execute(query_obj_1)
@@ -119,7 +125,11 @@ def main(connection_uri, schema_name, output_path, max_size, train_split, annota
                         spans += [doc.char_span(start_position, end_position, label=annotation_label, alignment_mode="expand")]
                     elif annotation_style == "label_positive_concepts":
                         if annotation_label == "Positive":
-                            spans += [doc.char_span(start_position, end_position, label=str(concept_id),
+                            if concept_id in concept_dict:
+                                concept_name = concept_dict[concept_id] + "|" + str(concept_id)
+                            else:
+                                concept_name = str(concept_id)
+                            spans += [doc.char_span(start_position, end_position, label=concept_name,
                                                     alignment_mode="expand")]
 
             try:
@@ -176,7 +186,8 @@ if __name__ == "__main__":
     arg_parse_obj.add_argument("-m", "--maximum-number-of-documents", dest="maximum_number_of_documents",
                                help="Maximum number of documents; default is no restriction", default=None)
 
-    arg_parse_obj.add_argument("-a", "--annotation_style", dest="annotation_style", default="label_positive_concepts", help="Two choices: label_term_usage or label_positive_concepts")
+    arg_parse_obj.add_argument("-a", "--annotation_style", dest="annotation_style", default="label_positive_concepts",
+                               help="Two choices: label_term_usage or label_positive_concepts")
 
     arg_obj = arg_parse_obj.parse_args()
 
@@ -203,4 +214,5 @@ if __name__ == "__main__":
     with open(arg_obj.config_json_file_name) as f:
         config = json.load(f)
 
-    main(config["connection_uri"], config["schema"], config["data_directory"], int_maximum_size, float_test_size, arg_obj.annotation_style)
+    main(config["connection_uri"], config["schema"], config["ohdsi_schema"], config["data_directory"], int_maximum_size,
+         float_test_size, arg_obj.annotation_style)

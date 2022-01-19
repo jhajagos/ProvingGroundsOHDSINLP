@@ -60,7 +60,6 @@ def main(config, concept_names):
     combined_fp_df.to_csv(p_data_directory / "false_positive_examples.csv", index=False)
 
 
-
 if __name__ == "__main__":
 
     with open("config.json") as f:
