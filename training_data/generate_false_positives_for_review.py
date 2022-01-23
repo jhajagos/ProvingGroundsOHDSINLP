@@ -65,6 +65,6 @@ if __name__ == "__main__":
     with open("config.json") as f:
         config = json.load(f)
 
-    concept_names_to_check = ["Dry cough", "Dyspnea", "Diarrhea", "Abdominal pain"]
+    concept_names_to_check = ["Dry cough", "Dyspnea", "Diarrhea", "Abdominal pain", "Fever"]
 
     main(config, concept_names_to_check)

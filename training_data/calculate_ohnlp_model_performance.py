@@ -110,7 +110,6 @@ def main(config):
         merged_df.to_csv(file_name_to_export, index=False)
 
 
-
 if __name__ == "__main__":
 
     with open("config.json") as f:
@@ -119,6 +118,8 @@ if __name__ == "__main__":
     pairs_for_comparison = [("abdominal_pain_v", "note_nlp_concept_name=Abdominal pain"),
                             ("diarrhea_v", "note_nlp_concept_name=Diarrhea"),
                             ("dyspnea_admission_v", "note_nlp_concept_name=Dyspnea"),
-                            ("cough_v", "note_nlp_concept_name=Dry cough")]
+                            ("cough_v", "note_nlp_concept_name=Dry cough"),
+                            ("fever_v", "note_nlp_concept_name=Fever")
+                            ]
 
     main(config)

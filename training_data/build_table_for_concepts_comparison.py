@@ -93,7 +93,6 @@ def main(config):
         group_with_no_match_df = pd.concat([grouped_df, no_match_df])
         group_with_no_match_df = group_with_no_match_df.sort_values(["encounter_number", "note_class_concept_name", "note_nlp_concept_name"])
 
-
         #group_with_no_match_df.to_csv("./output.csv", index=False)
 
         q2 = """
