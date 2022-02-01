@@ -100,7 +100,7 @@ def main(config):
 
         print(f"Sensitivity: {tp / (tp + fn)}")
         print(f"Specificity: {tn / (tn + fp)}")
-        print(f"Sensitivity (PPV): {tp / (tp + fp)}")
+        print(f"PPV: {tp / (tp + fp)}")
         print(f"Frequency: {(tp + fn) / (tp + fn + tn + fp)}")
 
         file_name_to_export = p_data_directory / "merged_nlp_with_manual_chart_review_with_comp.csv"
@@ -119,7 +119,6 @@ if __name__ == "__main__":
                             ("diarrhea_v", "note_nlp_concept_name=Diarrhea"),
                             ("dyspnea_admission_v", "note_nlp_concept_name=Dyspnea"),
                             ("cough_v", "note_nlp_concept_name=Dry cough"),
-                            ("fever_v", "note_nlp_concept_name=Fever")
-                            ]
+                            ("fever_v", "note_nlp_concept_name=Fever")]
 
     main(config)

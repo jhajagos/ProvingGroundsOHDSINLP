@@ -131,6 +131,14 @@ def main(connection_uri, schema_name, ohdsi_concept_schema, output_path, max_siz
                                 concept_name = str(concept_id)
                             spans += [doc.char_span(start_position, end_position, label=concept_name,
                                                     alignment_mode="expand")]
+                    elif annotation_style == "label_negated_concepts":
+                        if annotation_label == "Negated":
+                            if concept_id in concept_dict:
+                                concept_name = concept_dict[concept_id] + "|" + str(concept_id)
+                            else:
+                                concept_name = str(concept_id)
+                            spans += [doc.char_span(start_position, end_position, label=concept_name,
+                                                    alignment_mode="expand")]
 
             try:
                 doc.set_ents(spans)
@@ -186,7 +194,7 @@ if __name__ == "__main__":
     arg_parse_obj.add_argument("-m", "--maximum-number-of-documents", dest="maximum_number_of_documents",
                                help="Maximum number of documents; default is no restriction", default=None)
 
-    arg_parse_obj.add_argument("-a", "--annotation_style", dest="annotation_style", default="label_positive_concepts",
+    arg_parse_obj.add_argument("-a", "--annotation_style", dest="annotation_style", default="label_negated_concepts",
                                help="Two choices: label_term_usage or label_positive_concepts")
 
     arg_obj = arg_parse_obj.parse_args()

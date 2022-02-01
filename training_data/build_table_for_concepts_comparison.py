@@ -55,17 +55,70 @@ def main(config):
 
         print(q1)
 
-        note_df = pd.read_sql(q1, connection)
+        pos_note_df = pd.read_sql(q1, connection)
 
-        print(f"Number of rows returned: {len(note_df)}")
+        print(f"Number of rows returned: {len(pos_note_df)}")
 
-        note_df = note_df[note_df["note_class_concept_name"].isin(["Emergency medicine", "Admission evaluation"])]
-        print(f"Number of rows after filtering: {len(note_df)}")
+        pos_note_df = pos_note_df[pos_note_df["note_class_concept_name"].isin(["Emergency medicine", "Admission evaluation"])]
+        print(f"Number of rows after filtering: {len(pos_note_df)}")
 
-        note_file_name = p_data_directory / "matched_and_filtered_notes_with_matched_concepts.csv"
-        print(f"Writing: '{note_file_name}'")
-        note_df.to_csv(note_file_name, index=False)
+        pos_note_file_name = p_data_directory / "pos_matched_and_filtered_notes_with_matched_concepts.csv"
+        print(f"Writing: '{pos_note_file_name}'")
+        pos_note_df.to_csv(pos_note_file_name, index=False)
 
+        q2 = """
+               with selected_positive_visits as (
+            select cast(v.encounter_number as bigint) as encounter_number,
+                   v.visit_start_datetime,
+                   v.visit_end_datetime,
+                   v.visit_concept_name
+            from sbm_covid19_analytics_build.critical_covid_visits_linked_to_hi v
+                join sbm_covid19_analytics_build.checked_visit_index cv on cv.visit_occurrence_id = v.visit_occurrence_id
+                    where encounter_number is not null and encounter_number ~ '^[0-9]+' and v.covid19_status = 'positive')
+         select * from (
+                           select distinct sv.*,
+                                           n.note_id,
+                                           n.person_id                                          as mrn,
+                                           c1.concept_name                                      as note_class_concept_name,
+                                           note_class_concept_id,
+                                           note_nlp_id,
+                                           note_nlp_concept_id,
+                                           case when note_nlp_concept_name is null then 'NC' else note_nlp_concept_name end as note_nlp_concept_name,
+                                           case when x.note_id is not null then 1 end as counter
+                           from selected_positive_visits sv
+                                    join sbm_covid19_documents.note n on n.visit_occurrence_id = sv.encounter_number
+                                    join sbm_covid19_hi_cdm_build.concept c1
+                                         on c1.concept_id = n.note_class_concept_id
+                                    left outer join
+                                    (select nl.note_id,
+                                            nl.note_nlp_id,
+                                            c2.concept_id   as note_nlp_concept_id,
+                                            c2.concept_name as note_nlp_concept_name
+                                     from sbm_covid19_documents.note_nlp nl
+                                              join sbm_covid19_hi_cdm_build.concept c2 on c2.concept_id = nl.note_nlp_concept_id
+                                     where left(term_modifiers, 17) = 'certainty=Negated'
+                                       and c2.concept_name != 'Influenza') x
+                                on x.note_id = n.note_id
+                       ) t
+                    order by encounter_number, note_class_concept_name, note_nlp_concept_id
+                """
+
+        print(q2)
+
+        neg_note_df = pd.read_sql(q2, connection)
+
+        print(f"Number of rows returned: {len(neg_note_df)}")
+
+        neg_note_df = neg_note_df[
+            neg_note_df["note_class_concept_name"].isin(["Emergency medicine", "Admission evaluation"])]
+        print(f"Number of rows after filtering: {len(neg_note_df)}")
+
+        neg_note_file_name = p_data_directory / "neg_matched_and_filtered_notes_with_matched_concepts.csv"
+        print(f"Writing: '{neg_note_file_name}'")
+
+        neg_note_df.to_csv(neg_note_file_name, index=False)
+
+        note_df = pos_note_df
         core_df = note_df[["encounter_number", "mrn", "visit_start_datetime", "visit_end_datetime", "visit_concept_name"]].drop_duplicates()
         print(f"Number of visits: {len(core_df)}")
 
@@ -95,7 +148,7 @@ def main(config):
 
         #group_with_no_match_df.to_csv("./output.csv", index=False)
 
-        q2 = """
+        q3 = """
         select mcr.*
        from sbm_covid19_analytics_build.critical_covid_manual_chart_review mcr
 join
@@ -115,8 +168,8 @@ where visit_start_datetime < '2020-05-01'
 order by visit_start_datetime desc
         """
 
-        print(q2)
-        manual_chart_df = pd.read_sql(q2, connection)
+        print(q3)
+        manual_chart_df = pd.read_sql(q3, connection)
         print(f"Number of manual chart reviews: {len(manual_chart_df)}")
 
         manual_chart_df["encounter_number"] = manual_chart_df["encounter_number"].astype("int64")
