@@ -6,10 +6,12 @@
       "clazz": "org.ohnlp.backbone.io.jdbc.JDBCExtract",
       "config": {
         "_desc": "An example configuration to extract notes from mssql OHDSI CDM instance, replace values as appropriate",
-        "url": "jdbc:postgresql://localhost:5432/ohdsi",
+        "url": "jdbc:postgresql://52.136.117.28:5433/ohdsi",
         "driver": "org.postgresql.Driver",
         "user": "",
         "password": "",
+        "batch_size": 100,
+        "identifier_col": "note_id",
         "query": "SELECT note_id, note_text FROM NOTE"
       }
     },
@@ -19,7 +21,7 @@
         "_desc": "Runs NLP. In this case, we use COVID-19 ruleset that is bundled by default as an example",
         "_desc_ctd": "Note: you will need to install the MedTagger Backbone Component found at https://www.github.com/OHNLP/MedTagger",
         "input": "note_text",
-        "ruleset": "covid19",
+        "ruleset": "pasc",
         "mode": "standalone"
       }
     },
@@ -28,7 +30,7 @@
       "config": {
         "_desc": "Converts MedTagger output to OHDSI format",
         "_desc_ctd": "Note: you will need to install the MedTagger Backbone Component found at https://www.github.com/OHNLP/MedTagger",
-        "ruleset": "covid19"
+        "ruleset": "NONE"
       }
     },
     {

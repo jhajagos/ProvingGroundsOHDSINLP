@@ -63,7 +63,6 @@ def main(config, concept_names):
         else:
             combined_fp_df = pd.concat([combined_fp_df, fp_with_crosswalk_sha1_pos_df])
 
-
         # Negated terms
         false_negatives_df = matched_df[matched_df[f"note_nlp_concept_name={concept_name}|fn"] == 1]
 
