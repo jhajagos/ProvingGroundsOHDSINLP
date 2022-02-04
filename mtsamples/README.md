@@ -7,7 +7,7 @@ https://www.kaggle.com/tboyle10/medicaltranscriptions
 1) Create OHDSI note and note_nlp tables
 
 ```sql
-drop table if exists sbm_covid19_documents.note;
+drop table if exists note;
 
 --HINT DISTRIBUTE_ON_KEY(person_id)
 CREATE TABLE note

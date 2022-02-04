@@ -22,7 +22,7 @@ RUN cd OHNLP/backbone;  unzip Backbone.zip
 
 # Get MedTagger release
 RUN mkdir  OHNLP/medtagger
-RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.24/MedTagger.zip
+RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.25/MedTagger.zip
 RUN cd OHNLP/medtagger/; unzip MedTagger.zip
 RUN cd OHNLP/medtagger/; cp  MedTagger.jar ../backbone/modules/
 RUN cd OHNLP/medtagger/; cp -r medtaggerieresources/pasc/ ../backbone/resources/
@@ -32,3 +32,5 @@ ARG source="./config/[[]run_nlp]_[[]ohdsi_cdm]_[[]ohdsi_cdm].json"
 COPY ${source} OHNLP/backbone/configs/
 COPY run_pipeline_local.sh OHNLP/backbone/
 RUN cd OHNLP/backbone; bash package_modules_and_configs.sh
+
+# Flink Cluster Started - Job Progress Can be Seen via Configured WebUI Port (Default: localhost:8081)
