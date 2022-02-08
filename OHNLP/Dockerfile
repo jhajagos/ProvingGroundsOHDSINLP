@@ -17,7 +17,7 @@ RUN apt-get -y install less
 
 # Get Backbone release
 RUN mkdir -p OHNLP/backbone
-RUN cd OHNLP/backbone;  wget https://github.com/OHNLP/Backbone/releases/download/v1.0.9/Backbone.zip
+RUN cd OHNLP/backbone;  wget https://github.com/OHNLP/Backbone/releases/download/v1.0.10/Backbone.zip
 RUN cd OHNLP/backbone;  unzip Backbone.zip
 
 # Get MedTagger release
@@ -30,7 +30,7 @@ RUN cd OHNLP/medtagger/; cp -r medtaggerieresources/pasc/ ../backbone/resources/
 # Copy configuration file
 ARG source="./config/[[]run_nlp]_[[]ohdsi_cdm]_[[]ohdsi_cdm].json"
 COPY ${source} OHNLP/backbone/configs/
-COPY run_pipeline_local.sh OHNLP/backbone/
+
 RUN cd OHNLP/backbone; bash package_modules_and_configs.sh
 
 # Flink Cluster Started - Job Progress Can be Seen via Configured WebUI Port (Default: localhost:8081)
