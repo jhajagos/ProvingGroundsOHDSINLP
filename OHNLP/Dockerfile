@@ -22,7 +22,7 @@ RUN cd OHNLP/backbone;  unzip Backbone.zip
 
 # Get MedTagger release
 RUN mkdir  OHNLP/medtagger
-RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.25/MedTagger.zip
+RUN cd OHNLP/medtagger/; wget https://github.com/OHNLP/MedTagger/releases/download/v1.0.28/MedTagger.zip
 RUN cd OHNLP/medtagger/; unzip MedTagger.zip
 RUN cd OHNLP/medtagger/; cp  MedTagger.jar ../backbone/modules/
 RUN cd OHNLP/medtagger/; cp -r medtaggerieresources/pasc/ ../backbone/resources/
