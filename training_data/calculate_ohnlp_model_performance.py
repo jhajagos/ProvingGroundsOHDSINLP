@@ -1,5 +1,4 @@
 import pandas as pd
-import spacy
 import json
 import pathlib
 import numpy as np
@@ -66,6 +65,8 @@ def main(config):
 
     merged_df = pd.read_csv(p_data_directory / "merged_nlp_with_manual_chart_review.csv")
 
+    result_list = []
+
     for pair in pairs_for_comparison:
         chart_review_column, nlp_column = pair
 
@@ -98,16 +99,40 @@ def main(config):
 
         fn, fp, tp, tn = compare_sum_series.values.tolist()
 
-        print(f"Sensitivity: {tp / (tp + fn)}")
-        print(f"Specificity: {tn / (tn + fp)}")
-        print(f"PPV: {tp / (tp + fp)}")
-        print(f"Frequency: {(tp + fn) / (tp + fn + tn + fp)}")
+        sensitivity = tp / (tp + fn)
+        specificity = tn / (tn + fp)
+        ppv = tp / (tp + fp)
+        frequency = (tp + fn) / (tp + fn + tn + fp)
 
-        file_name_to_export = p_data_directory / "merged_nlp_with_manual_chart_review_with_comp.csv"
+        print(f"Sensitivity: {sensitivity}")
+        print(f"Specificity: {specificity}")
+        print(f"PPV: {ppv}")
+        print(f"Frequency: {frequency}")
 
-        print("")
-        print(f"Writing: '{file_name_to_export}'")
-        merged_df.to_csv(file_name_to_export, index=False)
+        result_list += [{"chart_review": "_".join(chart_review_column.split("_")[:-1]),
+                         "note_nlp_concept_name": nlp_column.split("=")[-1],
+                         "sensitivity": sensitivity,
+                         "specificity": specificity,
+                         "ppv": ppv,
+                         "frequency": frequency,
+                         "tp": int(tp),
+                         "tn": int(tn),
+                         "fp": int(fp),
+                         "fn": int(fn)
+                         }]
+
+    file_name_to_export = p_data_directory / "merged_nlp_with_manual_chart_review_with_comp.csv"
+
+    print("")
+    print(f"Writing: '{file_name_to_export}'")
+    merged_df.to_csv(file_name_to_export, index=False)
+
+    print("")
+    print(f"Writing: '{file_name_to_export}'")
+
+    analysis_comparison_file_path = p_data_directory / "analysis_of_comparison.csv"
+    comp_df = pd.DataFrame(result_list)
+    comp_df.to_csv(analysis_comparison_file_path, index=False)
 
 
 if __name__ == "__main__":
