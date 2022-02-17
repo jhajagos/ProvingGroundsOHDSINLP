@@ -1,7 +1,6 @@
 import sqlalchemy as sa
 import rubrix as rb
 import json
-import httpx
 
 def main(config):
 
