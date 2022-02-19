@@ -34,7 +34,7 @@ def main(spacy_file, collection_name, doc_limit):
 
 
 if __name__ == "__main__":
-    main( "C:\\Users\\Janos Hajagos\\data\\covid_nlp\\20210315\\ohnlp_ohdsi_train_label_term_usage.spacy",
+    main("C:\\Users\\Janos Hajagos\\data\\covid_nlp\\20210315\\ohnlp_ohdsi_train_label_term_usage.spacy",
           "ohnlp_set_labelling", doc_limit=None)
 
     main("C:\\Users\\Janos Hajagos\\data\\covid_nlp\\20210315\\ohnlp_ohdsi_train_label_positive_concepts.spacy",
