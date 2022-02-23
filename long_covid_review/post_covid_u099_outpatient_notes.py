@@ -2,6 +2,7 @@ import sqlalchemy as sa
 import rubrix as rb
 import json
 
+
 def main(config):
 
     rb.init(api_url=config["rubrix_uri"], api_key=config["rubrix_api_key"])
@@ -39,7 +40,8 @@ def main(config):
             for column in columns:
                 meta_data_dict[column] = row[column]
 
-            rb_obj = rb.TextClassificationRecord(inputs={"text": row["file_text"]}, metadata=meta_data_dict, id=row["document_id"])
+            rb_obj = rb.TextClassificationRecord(inputs={"text": row["file_text"]}, metadata=meta_data_dict,
+                                                 id=row["document_id"], multi_label=True)
             report_list += [rb_obj]
 
         reports_to_commit = []
