@@ -38,9 +38,12 @@ def main(connection_uri, schema_name, ohdsi_concept_schema, output_path, max_siz
 
         concept_dict = {r["concept_id"]: r["concept_name"] for r in result}
 
+        print(f"Number of concepts found: {len(concept_dict)}")
+
+
         note_nlp_obj = meta_data.tables[schema_name + "." + "note_nlp"]
         query_obj_1 = note_nlp_obj.select().where(sa.not_(note_nlp_obj.c.note_nlp_concept_id.\
-                                                        in_(exclude_concepts))).order_by(note_nlp_obj.c.note_id)  # Exclude FLU as there are many false positives
+                                                        in_(exclude_concepts))).order_by(note_nlp_obj.c.note_id).limit(max_size)
 
         print("Executing query")
         cursor = connection.execute(query_obj_1)
@@ -49,6 +52,7 @@ def main(connection_uri, schema_name, ohdsi_concept_schema, output_path, max_siz
 
         re_date = re.compile("[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2} EST") # for finding dates that start a note
 
+        print("Iterating through rows")
         i = 0
         for row in cursor:
 
@@ -192,9 +196,9 @@ if __name__ == "__main__":
     arg_parse_obj.add_argument("-t", "--test-size-split", dest="test_size_split", default="0.3",
                                help="Fractional split of training size must be between 0 and 1")
     arg_parse_obj.add_argument("-m", "--maximum-number-of-documents", dest="maximum_number_of_documents",
-                               help="Maximum number of documents; default is no restriction", default=None)
+                               help="Maximum number of documents; default is no restriction", default=10000)
 
-    arg_parse_obj.add_argument("-a", "--annotation_style", dest="annotation_style", default="label_negated_concepts",
+    arg_parse_obj.add_argument("-a", "--annotation_style", dest="annotation_style", default="label_positive_concepts",
                                help="Two choices: label_term_usage or label_positive_concepts")
 
     arg_obj = arg_parse_obj.parse_args()
